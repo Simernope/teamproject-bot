@@ -14,7 +14,7 @@ const token = '5444323708:AAFCwNW_LXMHek_iwAHjoeRdBlsNELsOb0s'
 
 const bot = new TelegramApi(token, {polling: true})
 
-
+//имитация базы данных
 let userData = {
     password: {},
     login: {},
@@ -26,6 +26,8 @@ let userData = {
     isReminding: {}
 }
 
+
+//запись логина
 const setLogin = (chatId, msgChat) => {
     if (!userData.login[chatId]) {
         bot.sendMessage(chatId, `${msgChat.first_name}, введите логин от личного кабинета УрФУ через reply  этого сообщения`)
@@ -43,6 +45,7 @@ const setLogin = (chatId, msgChat) => {
     }
 }
 
+//запись пароля
 const setPassword = async (chatId, msgChat) => {
     if (!userData.password[chatId]) {
         await bot.sendMessage(chatId, `${msgChat.first_name}, введите пароль от личного кабинета УрФУ через reply  этого сообщения`)
@@ -58,6 +61,7 @@ const setPassword = async (chatId, msgChat) => {
         return bot.sendMessage(chatId, `${msgChat.first_name}, вы уже ввели данные - \n ${userData.password[chatId]} - пароль,\n желаете заменить его?`, changingUserData)
     }
 }
+
 const setUserData = async (chatId, msgChat) => {
     if (!userData.login[chatId] && !userData.password[chatId]) {
         await setLogin(chatId, msgChat)
@@ -67,7 +71,7 @@ const setUserData = async (chatId, msgChat) => {
     }
 }
 
-
+//берем html разметку с личного кабинета урфу
 const getHtmlData = (chatId, msgChat) => {
     const data_to_pass_in = {
         data_sent: chatId,
@@ -78,9 +82,9 @@ const getHtmlData = (chatId, msgChat) => {
     }
     if (userData.login[chatId] && userData.password[chatId]) {
         console.log('Данные, которые мы отправили с js', data_to_pass_in)
-        const python_process = spawner('python', ['./python.py', JSON.stringify(data_to_pass_in)])
+        const python_process = spawner('python', ['./getUserProfile.py', JSON.stringify(data_to_pass_in)])
         python_process.stdout.on('data', async (data) => {
-            console.log('Данные, которые мы получили от питона: ', JSON.parse(data.toString()))
+            console.log('Данные, которые мы получили от getUserProfile: ', JSON.parse(data.toString()))
             userData.enterStatus[chatId] = JSON.parse(data.toString()).enterStatus
             await bot.sendMessage(chatId, `${msgChat.first_name}! ${JSON.parse(data.toString()).data_returned}`).catch()
             return bot.sendMessage(chatId, `Что дальше? \nВведи /iterations,\nчтобы посмотреть когда ставить оценки в TeamProject\nВведи /money,\nчтобы посмотреть доход от стипендии или зарплаты`).catch()
@@ -92,14 +96,15 @@ const getHtmlData = (chatId, msgChat) => {
         setUserData(chatId, msgChat)
     }
 }
+
+//проверка введенного логина и пароля
 const isDataEnterd = (chatId, msgChat) => {
     if (userData.login[chatId] && userData.password[chatId]) {
         bot.sendMessage(chatId, ` ${msgChat.first_name}! Вы ввели данные от личного кабинета УрФУ. \n Проверим данные?`, enteringToUrfuProfile).catch()
     }
 }
 
-
-
+//отправка сообщения с введенными данными
 const getUserData = async (chatId, msgChat) => {
     if (userData.login[chatId] && userData.password[chatId] && userData.enterStatus[chatId]) {
         bot.sendMessage(chatId, `${msgChat.first_name}, ваш логин и пароль от личного кабинета УрФУ -  \n${userData.login[chatId]} - логин \n${userData.password[chatId]} - пароль\n${userData.enterStatus[chatId]} - статус аутефикации`)
@@ -113,6 +118,7 @@ const getUserData = async (chatId, msgChat) => {
     }
 }
 
+//преобразование итераций в читаемый вид
 const getReadableIterations = async (chatId, msgChat, data_returned) => {
     console.log(Object.keys(data_returned))
     userData.iterations[chatId] = data_returned
@@ -136,6 +142,7 @@ const getReadableIterations = async (chatId, msgChat, data_returned) => {
     }
     await bot.sendMessage(chatId, `Напоминать о предстоящих итерациях?`, remindAboutIterations).catch()
 }
+//преобразование разметки с доходами в читаемый вид
 const getReadableMoneyAndMonthes = async (chatId, msgChat, data_returned) => {
     let years = Object.keys(data_returned)
     let str = ''
@@ -165,9 +172,9 @@ const getAvailableMonthesMoney = (chatId, msgChat) => {
 
 
     console.log('Данные, которые мы отправили с js', data_to_pass_in)
-    const python_process = spawner('python', ['./getUserMoney.py', JSON.stringify(data_to_pass_in)])
+    const python_process = spawner('python', ['./getAvailableMonthes.py', JSON.stringify(data_to_pass_in)])
     python_process.stdout.on('data', (data) => {
-        console.log('Данные, которые мы получили от питона2: ', JSON.parse(data.toString()))
+        console.log('Данные, которые мы получили от getAvailableMonthes: ', JSON.parse(data.toString()))
         if (JSON.parse(data.toString()).enterMoneyStatus) {
             getReadableMoneyAndMonthes(chatId, msgChat, JSON.parse(data.toString()).data_returned)
         } else {
@@ -248,12 +255,12 @@ const getMoney = (chatId, msgChat) => {
 
 
 
-
+//метод с таймером для напоминания об итерациях
 const remindMeAboutIterations = async (chatId, msgChat) => {
     console.log(userData.iterations[chatId])
     let projectName = Object.keys(userData.iterations[chatId])
     let iterations = Object.keys(userData.iterations[chatId][projectName])
-    //let now = Date.parse('2022-06-05')
+
     function sendTime(time, chatId) {
         new schedule.scheduleJob({
             start: new Date(Date.now() + Number(time) * 1000 * 60),
@@ -286,6 +293,7 @@ const remindMeAboutIterations = async (chatId, msgChat) => {
                     `Остановить напоминания?`, stopRemindAboutIterations
                 ).catch()
             }
+            //вызывается один раз в 5 МИНУТ 
             return sendTime(5, chatId)
         })
     }
