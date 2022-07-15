@@ -269,20 +269,26 @@ const remindMeAboutIterations = async (chatId, msgChat) => {
         }, async function () {
             if (userData.isReminding[chatId] === true) {
                 for (let i = 0; i < iterations.length; i += 1) {
+                    let dateStart = Date.parse(userData.iterations[chatId][projectName][iterations[i]]['Начало итерации'])
+                    let dateEnd = Date.parse(userData.iterations[chatId][projectName][iterations[i]]['Конец итерации'])
+                    //let dateNow = Date.parse(new Date())
+                    let dateNow = Date.parse("2022-06-08")
                     console.log(userData.iterations[chatId][projectName][iterations[i]])
                     console.log([iterations[i]])
-                    if (Date.parse(new Date()) < Date.parse(userData.iterations[chatId][projectName][iterations[i]]['Начало итерации'])) {
+                    //new Date()
+                    if (dateNow < dateStart ) {
                         console.log('Итерация еще не началась')
                         await bot.sendMessage(chatId,
                             `Итерация - ${[iterations[i]]} - еще не началась!`
                         ).catch()
                     }
-                    if (Date.parse(new Date()) > Date.parse(userData.iterations[chatId][projectName][iterations[i]]['Конец итерации'])) {
+                    if (dateNow > dateEnd) {
                         console.log('Итерация закончилась')
                         await bot.sendMessage(chatId,
                             `Итерация - ${[iterations[i]]} - уже закрыта!`
                         ).catch()
                     }
+                    //((dateNow > dateStart) && (dateEnd < dateNow))
                      else {
                         await bot.sendMessage(chatId,
                             `Итерация - ${[iterations[i]]} - открыта! Самое время поставить оценки!`
