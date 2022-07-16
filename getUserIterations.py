@@ -8,7 +8,7 @@ import json
 
 session = requests.Session()
 link = "https://sts.urfu.ru/adfs/OAuth2/authorize?response_type=code&client_id=https%3A%2F%2Fteamproject.urfu.ru%2Fapi%2Fauth%2Foauth2&redirect_uri=https%3A%2F%2Fteamproject.urfu.ru%2Fapi%2Fauth%2Foauth2&resource=https%3A%2F%2Fteamproject.urfu.ru%2Fapi%2Fauth%2Foauth2"
-
+linkNewIteration = "https://teamproject.urfu.ru/api/projects/19827/iterations/"
 #ловим пароль и логин
 input = ast.literal_eval(sys.argv[1])
 
@@ -56,15 +56,23 @@ iterationsDict['items'][0]['title']
 iterationsList = {}
 
 iterationsList[projectTitle] = {}
-for i in range(len(iterationsDict)):
+for i in range(len(iterationsDict) + 1):
   iterationsList[projectTitle][iterationsDict['items'][i]['title']]={'Начало итерации':'', 'Конец итерации': ''}
   iterationsList[projectTitle][iterationsDict['items'][i]['title']]['Начало итерации'] = str(iterationsDict['items'][i]['estimation_date_begin'])
   iterationsList[projectTitle][iterationsDict['items'][i]['title']]['Конец итерации'] = str(iterationsDict['items'][i]['estimation_date_end'])
+  iterationsList[projectTitle][str(iterationsDict['items'][i]['title'])]['ID итерации'] = str(iterationsDict['items'][i]['id'])
+  linkNewIteration = linkNewIteration + iterationsList[projectTitle][str(iterationsDict['items'][i]['title'])]['ID итерации']+ "/my-estimation-status/"
+  responseNewIteration = session.get(url=linkNewIteration,  headers={'authorization':jwtToken}).text
+  unquotedResponseNewIteration = parse.unquote(responseNewIteration)
+  responseNewIterationDict = json.loads(responseNewIteration)
+  iterationsList[projectTitle][str(iterationsDict['items'][i]['title'])]['Вы оценили'] = responseNewIterationDict['number_of_scores']['outgoing']
+  iterationsList[projectTitle][str(iterationsDict['items'][i]['title'])]['Вас оценили'] = responseNewIterationDict['number_of_scores']['incoming']
+  iterationsList[projectTitle][str(iterationsDict['items'][i]['title'])]['Колличество студентов'] = responseNewIterationDict['number_of_students']
 
 
 
 output = input
-#data.charCodeAt(0) === 65279
+
 
 
 
@@ -72,7 +80,7 @@ if(iterationsList):
     output['data_returned'] = iterationsList
     output['enterMoneyStatus'] = True
 else:
-     output['data_returned'] = 'У вас нет доступных дат для просмотра доходов...'  
+     output['data_returned'] = 'Итерации еще не добавлены...'
      output['enterMoneyStatus'] = False
 
 
