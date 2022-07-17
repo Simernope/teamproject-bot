@@ -120,58 +120,79 @@ const getUserData = async (chatId, msgChat) => {
 
 //преобразование итераций в читаемый вид
 const getReadableIterations = async (chatId, msgChat, data_returned, callFromLoop) => {
-    let readableData = ""
     console.log(Object.keys(data_returned))
+
+    let stringLine = "\n----------------------------------------------------------------"
     let projectName = Object.keys(data_returned)
-    readableData = projectName + "\n----------------------------------------------------------------"
     let iterations = Object.keys(data_returned[projectName])
     let size = Object.keys(data_returned[projectName]).length
-    let duration = Object.keys(data_returned[projectName][iterations[2]])
+    let iterationKeys = Object.keys(data_returned[projectName][iterations[0]])
+
+
     let newIterations = ""
     let newIterationLength = 0
-    if(!callFromLoop){
-        for (let i = 0; i < size; i += 1) {
-            if (userData.iterations[chatId]) {
-                if ((Object.keys(userData.iterations[chatId][projectName]))[i].includes(iterations[i])) {
-                    readableData = readableData + '\n' + iterations[i] + '\n'
-                    readableData = readableData + data_returned[projectName][iterations[i]][duration[0]] + " - начало итерации\n"
-                    readableData = readableData + data_returned[projectName][iterations[i]][duration[1]] + " - конец итерации\n"
-                }
-            } else {
-                readableData = readableData + '\n' + iterations[i] + ' - новая итерация\n'
-                readableData = readableData + data_returned[projectName][iterations[i]][duration[0]] + " - начало итерации\n"
-                readableData = readableData + data_returned[projectName][iterations[i]][duration[1]] + " - конец итерации\n"
-                newIterations = newIterations + iterations[i] + '\n'
-                newIterationLength += 1
-            }
+    let readableData = ""
 
-        }
-        if (newIterations) {
+    readableData = projectName
 
-            if (newIterationLength === 1) {
-                await bot.sendMessage(chatId,
-                    `Добавлена одна новая итерация!\n----------------------------------------------------------------\n${newIterations}`).catch()
+    for (let i = 0; i < size; i += 1) {
+        let iterationStart = data_returned[projectName][iterations[i]][iterationKeys[0]]
+        let iterationEnd = data_returned[projectName][iterations[i]][iterationKeys[1]]
+        let outputMarkup = data_returned[projectName][iterations[i]][iterationKeys[3]]
+        let allStudents = data_returned[projectName][iterations[i]][iterationKeys[5]]
+        let inputMarkup = data_returned[projectName][iterations[i]][iterationKeys[4]]
+        if (userData.iterations[chatId]) {
+            if ((Object.keys(userData.iterations[chatId][projectName]))[i].includes(iterations[i])) {
+                readableData = readableData
+                    + stringLine + '\n'
+                    + iterations[i] + '\n\n'
+                    + iterationStart + " - начало итерации\n"
+                    + iterationEnd + " - конец итерации\n"
             }
+        } else {
+            readableData = readableData
+                + stringLine + '\n'
+                + iterations[i] + ' - новая итерация\n\n'
+                + iterationStart + " - начало итерации\n"
+                + iterationEnd + " - конец итерации\n\n"
+                + "вы оценили " + outputMarkup + " человек из " + allStudents + "\n"
+                + "вас оценили " + inputMarkup + " человек из " + allStudents + "\n"
 
-            if (newIterationLength === 2 || 3 || 4) {
-                await bot.sendMessage(chatId,
-                    `Добавлено ${newIterationLength} новых итерации!\n----------------------------------------------------------------\n${newIterations}`).catch()
-            }
-
-            if (newIterationLength > 4){
-                await bot.sendMessage(chatId,
-                    `Добавлено ${newIterationLength} новых итераций!\n----------------------------------------------------------------\n${newIterations}`).catch()
-            }
+            newIterations = newIterations + iterations[i] + '\n'
+            newIterationLength += 1
         }
 
-        userData.iterations[chatId] = data_returned
-        console.log(userData.iterations[chatId][projectName])
+    }
+    if (newIterations) {
+
+        if (newIterationLength === 1) {
+            await bot.sendMessage(chatId,
+                `Добавлена одна новая итерация!${stringLine}\n${newIterations}`).catch()
+        }
+
+        if (newIterationLength === 2 || 3 || 4) {
+            await bot.sendMessage(chatId,
+                `Добавлено ${newIterationLength} новых итерации!${stringLine}\n${newIterations}`).catch()
+        }
+
+        if (newIterationLength > 4) {
+            await bot.sendMessage(chatId,
+                `Добавлено ${newIterationLength} новых итераций!${stringLine}\n${newIterations}`).catch()
+        }
+    }
+
+
+    if (!callFromLoop) {
         await bot.sendMessage(chatId, readableData).catch()
-        if (!userData.isReminding[chatId]){
+        if (!userData.isReminding[chatId]) {
             await bot.sendMessage(chatId, `Напоминать о предстоящих итерациях?`, remindAboutIterations).catch()
         }
-    }else {
-        await bot.sendMessage(chatId, `Вызов из loop`).catch()
+        userData.iterations[chatId] = data_returned
+
+    } else {
+        //if(newIterations){
+        await bot.sendMessage(chatId, readableData,stopRemindAboutIterations).catch()
+        //}
     }
 
 }
@@ -217,7 +238,7 @@ const getAvailableMonthesMoney = (chatId, msgChat) => {
     })
 }
 
-const getUserIterations = (chatId, msgChat, callFromLoop= false) => {
+const getUserIterations = (chatId, msgChat, callFromLoop = false) => {
     const data_to_pass_in = {
         data_sent: chatId,
         login: 'Simeon02908@gmail.com',
@@ -234,10 +255,10 @@ const getUserIterations = (chatId, msgChat, callFromLoop= false) => {
         if (JSON.parse(data.toString()).enterMoneyStatus) {
             //if (!userData.isReminding[chatId]){
             console.log('Вызов из итераций')
-                return getReadableIterations(chatId, msgChat, JSON.parse(data.toString()).data_returned, callFromLoop)
+            return getReadableIterations(chatId, msgChat, JSON.parse(data.toString()).data_returned, callFromLoop)
             //}else{
-               //
-               // return remindMeAboutIterations(chatId, msgChat, JSON.parse(data.toString()).data_returned)
+            //
+            // return remindMeAboutIterations(chatId, msgChat, JSON.parse(data.toString()).data_returned)
             //}
         } else {
             return bot.sendMessage(chatId,
@@ -333,15 +354,15 @@ const remindMeAboutIterations = async (chatId, msgChat) => {
                         ).catch()
                     }
                 }*/
-               /* await bot.sendMessage(chatId,
-                    `Остановить напоминания?`, stopRemindAboutIterations
-                ).catch()*/
-
+                /* await bot.sendMessage(chatId,
+                     `Остановить напоминания?`, stopRemindAboutIterations
+                 ).catch()*/
+//вызывается один раз в 5 МИНУТ
+                let callFromLoop = true
+                getUserIterations(chatId, msgChat, callFromLoop)
+                return sendTime(0.15, chatId)
             }
-            //вызывается один раз в 5 МИНУТ
-            let callFromLoop = true
-            getUserIterations(chatId, msgChat, callFromLoop)
-            return sendTime(0.15, chatId)
+            console.log('return')
         })
     }
 
@@ -424,6 +445,9 @@ bot.on('callback_query', msg => {
         case  '/remindAboutIterations':
             userData.isReminding[chatId] = true
             console.log(userData.iterations[chatId], userData.isReminding[chatId])
+            bot.sendMessage(chatId,
+                `Хорошо!`
+            ).catch()
             return remindMeAboutIterations(chatId, msg.message.chat)
 
         case  '/stopRemindAboutIterations':
