@@ -23,9 +23,15 @@ let userData = {
     moneyMonth: {},
     enterMoneyStatus: {},
     iterations: {},
-    isReminding: {}
+    isReminding: {},
+    addIteration: {}
 }
 
+//имитация новых итераций
+const addIteration = (chatId, msgChat) => {
+    userData.addIteration[chatId] = true
+    bot.sendMessage(chatId, `${msgChat.first_name}, добавлена новая итерация!!!`).catch()
+}
 
 //запись логина
 const setLogin = (chatId, msgChat) => {
@@ -119,7 +125,10 @@ const getUserData = async (chatId, msgChat) => {
 }
 
 //преобразование итераций в читаемый вид
-const getReadableIterations = async (chatId, msgChat, data_returned, callFromLoop) => {
+const getReadableIterations = async (chatId, msgChat, data_returned, callFromLoop, new_iterations) => {
+    if (userData.addIteration[chatId]) {
+        data_returned = new_iterations
+    }
     console.log(Object.keys(data_returned))
 
     let stringLine = "\n----------------------------------------------------------------"
@@ -141,13 +150,26 @@ const getReadableIterations = async (chatId, msgChat, data_returned, callFromLoo
         let outputMarkup = data_returned[projectName][iterations[i]][iterationKeys[3]]
         let allStudents = data_returned[projectName][iterations[i]][iterationKeys[5]]
         let inputMarkup = data_returned[projectName][iterations[i]][iterationKeys[4]]
+        //
         if (userData.iterations[chatId]) {
-            if ((Object.keys(userData.iterations[chatId][projectName]))[i].includes(iterations[i])) {
+            if ((iterations[i]).includes((Object.keys(userData.iterations[chatId][projectName]))[i])) {
+                console.log('(Object.keys(userData.iterations[chatId][projectName]))[i]', (Object.keys(userData.iterations[chatId][projectName]))[i].includes(iterations[i]), iterations[i])
                 readableData = readableData
                     + stringLine + '\n'
                     + iterations[i] + '\n\n'
                     + iterationStart + " - начало итерации\n"
                     + iterationEnd + " - конец итерации\n"
+            } else {
+                readableData = readableData
+                    + stringLine + '\n'
+                    + iterations[i] + ' - новая итерация\n\n'
+                    + iterationStart + " - начало итерации\n"
+                    + iterationEnd + " - конец итерации\n\n"
+                    + "вы оценили " + outputMarkup + " человек из " + allStudents + "\n"
+                    + "вас оценили " + inputMarkup + " человек из " + allStudents + "\n"
+
+                newIterations = newIterations + iterations[i] + '\n'
+                newIterationLength += 1
             }
         } else {
             readableData = readableData
@@ -166,11 +188,13 @@ const getReadableIterations = async (chatId, msgChat, data_returned, callFromLoo
     if (newIterations) {
 
         if (newIterationLength === 1) {
+            console.log('newIterationLength 1', newIterationLength)
             await bot.sendMessage(chatId,
                 `Добавлена одна новая итерация!${stringLine}\n${newIterations}`).catch()
         }
 
-        if (newIterationLength === 2 || 3 || 4) {
+        if (newIterationLength === 2 || newIterationLength === 3 || newIterationLength === 4) {
+            console.log('newIterationLength 2  3 4', newIterationLength)
             await bot.sendMessage(chatId,
                 `Добавлено ${newIterationLength} новых итерации!${stringLine}\n${newIterations}`).catch()
         }
@@ -184,15 +208,19 @@ const getReadableIterations = async (chatId, msgChat, data_returned, callFromLoo
 
     if (!callFromLoop) {
         await bot.sendMessage(chatId, readableData).catch()
+
         if (!userData.isReminding[chatId]) {
             await bot.sendMessage(chatId, `Напоминать о предстоящих итерациях?`, remindAboutIterations).catch()
         }
         userData.iterations[chatId] = data_returned
 
     } else {
-        //if(newIterations){
-        await bot.sendMessage(chatId, readableData,stopRemindAboutIterations).catch()
-        //}
+        if (newIterations) {
+            await bot.sendMessage(chatId, readableData, stopRemindAboutIterations).catch()
+        } else {
+            await bot.sendMessage(chatId, `Нет обновлений`, stopRemindAboutIterations).catch()
+        }
+        userData.iterations[chatId] = data_returned
     }
 
 }
@@ -244,6 +272,7 @@ const getUserIterations = (chatId, msgChat, callFromLoop = false) => {
         login: 'Simeon02908@gmail.com',
         password: 'bw89bAzt',
         data_returned: undefined,
+        new_iterations: undefined,
         enterMoneyStatus: undefined,
     }
 
@@ -255,7 +284,7 @@ const getUserIterations = (chatId, msgChat, callFromLoop = false) => {
         if (JSON.parse(data.toString()).enterMoneyStatus) {
             //if (!userData.isReminding[chatId]){
             console.log('Вызов из итераций')
-            return getReadableIterations(chatId, msgChat, JSON.parse(data.toString()).data_returned, callFromLoop)
+            return getReadableIterations(chatId, msgChat, JSON.parse(data.toString()).data_returned, callFromLoop, JSON.parse(data.toString()).new_iterations)
             //}else{
             //
             // return remindMeAboutIterations(chatId, msgChat, JSON.parse(data.toString()).data_returned)
@@ -360,7 +389,7 @@ const remindMeAboutIterations = async (chatId, msgChat) => {
 //вызывается один раз в 5 МИНУТ
                 let callFromLoop = true
                 getUserIterations(chatId, msgChat, callFromLoop)
-                return sendTime(0.15, chatId)
+                return sendTime(0.3, chatId)
             }
             console.log('return')
         })
@@ -374,7 +403,8 @@ bot.setMyCommands([
     {command: '/data', description: 'Ввести свои данные'},
     {command: '/mydata', description: 'Мои данные'},
     {command: '/money', description: 'Мои доходы'},
-    {command: '/iterations', description: 'Итерации TeamProject'}
+    {command: '/iterations', description: 'Итерации TeamProject'},
+    {command: '/additeration', description: 'Добавить итерацию'}
 ]).catch()
 
 bot.on('message', async msg => {
@@ -398,6 +428,8 @@ bot.on('message', async msg => {
             return bot.sendMessage(chatId, `Выберете год:`, moneyYearData)
         case '/iterations':
             return getUserIterations(chatId, msg.chat)
+        case '/additeration':
+            return addIteration(chatId, msg.chat)
     }
 })
 bot.on('callback_query', msg => {
