@@ -27,6 +27,7 @@ let userData = {
     addIteration: {}
 }
 
+
 //имитация новых итераций
 const addIteration = (chatId, msgChat) => {
     userData.addIteration[chatId] = true
@@ -141,7 +142,7 @@ const getReadableIterations = async (chatId, msgChat, data_returned, callFromLoo
     let newIterations = ""
     let newIterationLength = 0
     let readableData = ""
-
+    let doesntMark = ""
     readableData = projectName
 
     for (let i = 0; i < size; i += 1) {
@@ -183,6 +184,15 @@ const getReadableIterations = async (chatId, msgChat, data_returned, callFromLoo
             newIterations = newIterations + iterations[i] + '\n'
             newIterationLength += 1
         }
+        if (outputMarkup !== inputMarkup) {
+            doesntMark = doesntMark
+                + stringLine + '\n'
+                + iterations[i] + ' - итерация не оценена\n\n'
+                + iterationStart + " - начало итерации\n"
+                + iterationEnd + " - конец итерации\n\n"
+                + "вы оценили " + outputMarkup + " человек из " + allStudents + "\n"
+                + "вас оценили " + inputMarkup + " человек из " + allStudents + "\n"
+        }
 
     }
     if (newIterations) {
@@ -208,7 +218,9 @@ const getReadableIterations = async (chatId, msgChat, data_returned, callFromLoo
 
     if (!callFromLoop) {
         await bot.sendMessage(chatId, readableData).catch()
-
+        if (doesntMark) {
+            await bot.sendMessage(chatId, doesntMark).catch()
+        }
         if (!userData.isReminding[chatId]) {
             await bot.sendMessage(chatId, `Напоминать о предстоящих итерациях?`, remindAboutIterations).catch()
         }
@@ -217,7 +229,11 @@ const getReadableIterations = async (chatId, msgChat, data_returned, callFromLoo
     } else {
         if (newIterations) {
             await bot.sendMessage(chatId, readableData, stopRemindAboutIterations).catch()
-        } else {
+        }
+        if (doesntMark) {
+            await bot.sendMessage(chatId, doesntMark, stopRemindAboutIterations).catch()
+        }
+        if (!doesntMark) {
             await bot.sendMessage(chatId, `Нет обновлений`, stopRemindAboutIterations).catch()
         }
         userData.iterations[chatId] = data_returned
@@ -353,6 +369,7 @@ const remindMeAboutIterations = async (chatId, msgChat) => {
             start: new Date(Date.now() + Number(time) * 1000 * 60),
             end: new Date(new Date(Date.now() + Number(time) * 1000 * 60 + 1000)),
             rule: '*/1 * * * * *'
+            //rule: '1 1 0 * * *' - 1 минута 1 секунда 00:00 часов
         }, async function () {
             if (userData.isReminding[chatId] === true) {
                 console.log('Вызов из RemindMe')
