@@ -151,6 +151,11 @@ const getReadableIterations = async (chatId, msgChat, data_returned, callFromLoo
         let outputMarkup = data_returned[projectName][iterations[i]][iterationKeys[3]]
         let allStudents = data_returned[projectName][iterations[i]][iterationKeys[5]]
         let inputMarkup = data_returned[projectName][iterations[i]][iterationKeys[4]]
+
+        let dateStart = Date.parse(data_returned[projectName][iterations[i]]['Начало итерации'])
+        let dateEnd = Date.parse(data_returned[projectName][iterations[i]]['Конец итерации'])
+        //let dateNow = Date.parse(new Date())
+        let dateNow = Date.parse("2022-06-12")
         //
         if (userData.iterations[chatId]) {
             if ((iterations[i]).includes((Object.keys(userData.iterations[chatId][projectName]))[i])) {
@@ -184,14 +189,18 @@ const getReadableIterations = async (chatId, msgChat, data_returned, callFromLoo
             newIterations = newIterations + iterations[i] + '\n'
             newIterationLength += 1
         }
-        if (outputMarkup !== inputMarkup) {
-            doesntMark = doesntMark
-                + stringLine + '\n'
-                + iterations[i] + ' - итерация не оценена\n\n'
-                + iterationStart + " - начало итерации\n"
-                + iterationEnd + " - конец итерации\n\n"
-                + "вы оценили " + outputMarkup + " человек из " + allStudents + "\n"
-                + "вас оценили " + inputMarkup + " человек из " + allStudents + "\n"
+        if ((outputMarkup !== inputMarkup) && (dateStart <= dateNow ) && (dateNow <= dateEnd))    {
+
+                    doesntMark = doesntMark
+                        +"Пора ставить оценки!"
+                        + stringLine + '\n'
+                        + iterations[i] + ' - итерация не оценена\n\n'
+                        + iterationStart + " - начало итерации\n"
+                        + iterationEnd + " - конец итерации\n\n"
+                        + "вы оценили " + outputMarkup + " человек из " + allStudents + "\n"
+                        + "вас оценили " + inputMarkup + " человек из " + allStudents + "\n"
+
+
         }
 
     }
