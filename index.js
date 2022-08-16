@@ -294,8 +294,8 @@ const getAvailableMonthesMoney = (chatId, msgChat) => {
 const getUserIterations = (chatId, msgChat, callFromLoop = false) => {
     const data_to_pass_in = {
         data_sent: chatId,
-        login: 'Simeon02908@gmail.com',
-        password: 'bw89bAzt',
+        login: userData.login[chatId],
+        password: userData.password[chatId],
         data_returned: undefined,
         new_iterations: undefined,
         enterMoneyStatus: undefined,
